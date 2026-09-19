@@ -1,2 +1,61 @@
-import { useEffect,useState } from 'react'; import { api } from '../api/client'; import PageHeader from '../components/PageHeader';
-export default function LeaderboardPage(){const [rows,setRows]=useState([]);useEffect(()=>{api.get('/stats/leaderboard').then(r=>setRows(r.data.leaderboard));},[]);return <><PageHeader title="Leaderboard" subtitle="3 points for a win, 1 for a draw. Ties use goal difference, goals scored and win rate."/><div className="table-wrap"><table className="data-table"><thead><tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Win rate</th><th>PTS</th></tr></thead><tbody>{rows.map(r=><tr key={r.customerId}><td className="text-xl font-black text-volt">{r.rank}</td><td><div className="font-bold">{r.name}</div><div className="text-xs text-white/30">{r.favoriteTeam||'No favourite team'}</div></td><td>{r.played}</td><td>{r.wins}</td><td>{r.draws}</td><td>{r.losses}</td><td>{r.gf}</td><td>{r.ga}</td><td>{r.gd>0?'+':''}{r.gd}</td><td>{r.winRate}%</td><td className="text-lg font-black">{r.points}</td></tr>)}</tbody></table></div></>}
+import { useEffect, useState } from "react";
+import { api } from "../api/client";
+import PageHeader from "../components/PageHeader";
+export default function LeaderboardPage() {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    api.get("/stats/leaderboard").then((r) => setRows(r.data.leaderboard));
+  }, []);
+  return (
+    <>
+      <PageHeader
+        title="Leaderboard"
+        subtitle="3 points for a win, 1 for a draw. Ties use goal difference, goals scored and win rate."
+      />
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>P</th>
+              <th>W</th>
+              <th>D</th>
+              <th>L</th>
+              <th>GF</th>
+              <th>GA</th>
+              <th>GD</th>
+              <th>Win rate</th>
+              <th>PTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.customerId}>
+                <td className="text-xl font-black text-volt">{r.rank}</td>
+                <td>
+                  <div className="font-bold">{r.name}</div>
+                  <div className="text-xs text-white/30">
+                    {r.favoriteTeam || "No favourite team"}
+                  </div>
+                </td>
+                <td>{r.played}</td>
+                <td>{r.wins}</td>
+                <td>{r.draws}</td>
+                <td>{r.losses}</td>
+                <td>{r.gf}</td>
+                <td>{r.ga}</td>
+                <td>
+                  {r.gd > 0 ? "+" : ""}
+                  {r.gd}
+                </td>
+                <td>{r.winRate}%</td>
+                <td className="text-lg font-black">{r.points}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}

@@ -1,2 +1,55 @@
-import { useEffect,useState } from 'react';import { api } from '../../api/client';import PageHeader from '../../components/PageHeader';import { kes,dateTime } from '../../utils/format';
-export default function MyInvoicesPage(){const [rows,setRows]=useState([]);useEffect(()=>{api.get('/invoices/mine').then(r=>setRows(r.data.invoices));},[]);const pdf=id=>`${(import.meta.env.VITE_API_URL||'http://localhost:5000/api')}/invoices/${id}/pdf`;return <><PageHeader title="My Invoices" subtitle="Statements generated for your outstanding account balance."/><div className="table-wrap"><table className="data-table"><thead><tr><th>Invoice</th><th>Game debt</th><th>Purchase debt</th><th>Total</th><th>Date</th><th></th></tr></thead><tbody>{rows.map(i=><tr key={i.id}><td>{i.invoiceNumber}</td><td>{kes(i.gameDebtTotal)}</td><td>{kes(i.purchaseDebtTotal)}</td><td className="font-black text-volt">{kes(i.grandTotal)}</td><td>{dateTime(i.createdAt)}</td><td><a href={pdf(i.id)} target="_blank" rel="noreferrer" className="font-bold text-volt">Open PDF</a></td></tr>)}</tbody></table></div></>}
+import { useEffect, useState } from "react";
+import { api } from "../../api/client";
+import PageHeader from "../../components/PageHeader";
+import { kes, dateTime } from "../../utils/format";
+export default function MyInvoicesPage() {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    api.get("/invoices/mine").then((r) => setRows(r.data.invoices));
+  }, []);
+  const pdf = (id) =>
+    `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/invoices/${id}/pdf`;
+  return (
+    <>
+      <PageHeader
+        title="My Invoices"
+        subtitle="Statements generated for your outstanding account balance."
+      />
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Game debt</th>
+              <th>Purchase debt</th>
+              <th>Total</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((i) => (
+              <tr key={i.id}>
+                <td>{i.invoiceNumber}</td>
+                <td>{kes(i.gameDebtTotal)}</td>
+                <td>{kes(i.purchaseDebtTotal)}</td>
+                <td className="font-black text-volt">{kes(i.grandTotal)}</td>
+                <td>{dateTime(i.createdAt)}</td>
+                <td>
+                  <a
+                    href={pdf(i.id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold text-volt"
+                  >
+                    Open PDF
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}

@@ -1,2 +1,47 @@
-import { useEffect,useState } from 'react';import { api } from '../../api/client';import PageHeader from '../../components/PageHeader';import StatusPill from '../../components/StatusPill';import { kes,dateTime } from '../../utils/format';
-export default function MyTransactionsPage(){const [rows,setRows]=useState([]);useEffect(()=>{api.get('/finance/my-payments').then(r=>setRows(r.data.payments));},[]);return <><PageHeader title="My Transactions" subtitle="Payments recorded against your account."/><div className="table-wrap"><table className="data-table"><thead><tr><th>Reference</th><th>Purpose</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead><tbody>{rows.map(p=><tr key={p.id}><td>{p.paymentNumber}</td><td>{p.purpose.replaceAll('_',' ')}</td><td className="font-black text-volt">{kes(p.amount)}</td><td>{p.method}</td><td><StatusPill value={p.status}/></td><td>{dateTime(p.createdAt)}</td></tr>)}</tbody></table></div></>}
+import { useEffect, useState } from "react";
+import { api } from "../../api/client";
+import PageHeader from "../../components/PageHeader";
+import StatusPill from "../../components/StatusPill";
+import { kes, dateTime } from "../../utils/format";
+export default function MyTransactionsPage() {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    api.get("/finance/my-payments").then((r) => setRows(r.data.payments));
+  }, []);
+  return (
+    <>
+      <PageHeader
+        title="My Transactions"
+        subtitle="Payments recorded against your account."
+      />
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Purpose</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((p) => (
+              <tr key={p.id}>
+                <td>{p.paymentNumber}</td>
+                <td>{p.purpose.replaceAll("_", " ")}</td>
+                <td className="font-black text-volt">{kes(p.amount)}</td>
+                <td>{p.method}</td>
+                <td>
+                  <StatusPill value={p.status} />
+                </td>
+                <td>{dateTime(p.createdAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}

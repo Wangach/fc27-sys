@@ -1,11 +1,11 @@
-import { Router } from 'express';
-import { z } from 'zod';
-import { prisma } from '../utils/prisma.js';
-import { authenticate, authorize } from '../middleware/auth.js';
-import { writeAudit } from '../utils/audit.js';
+import { Router } from "express";
+import { z } from "zod";
+import { prisma } from "../utils/prisma.js";
+import { authenticate, authorize } from "../middleware/auth.js";
+import { writeAudit } from "../utils/audit.js";
 
 const router = Router();
-router.use(authenticate, authorize('ADMIN'));
+router.use(authenticate, authorize("ADMIN"));
 
 const fee = z.coerce.number().finite().min(0).max(1000000);
 
@@ -17,24 +17,24 @@ function serializeMatchType(type) {
   };
 }
 
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   const [settings, matchTypes] = await Promise.all([
     prisma.systemSetting.findMany(),
-    prisma.matchType.findMany({ orderBy: { name: 'asc' } }),
+    prisma.matchType.findMany({ orderBy: { name: "asc" } }),
   ]);
 
-  res.set('Cache-Control', 'no-store');
+  res.set("Cache-Control", "no-store");
   res.json({
     settings: Object.fromEntries(settings.map((x) => [x.key, x.value])),
     matchTypes: matchTypes.map(serializeMatchType),
   });
 });
 
-router.patch('/match-types/:code', async (req, res) => {
-  const code = z.enum(['LOSER_PAY', 'FAIR_PAY']).parse(req.params.code);
+router.patch("/match-types/:code", async (req, res) => {
+  const code = z.enum(["LOSER_PAY", "FAIR_PAY"]).parse(req.params.code);
 
   let data;
-  if (code === 'LOSER_PAY') {
+  if (code === "LOSER_PAY") {
     data = z
       .object({
         loserFee: fee,
@@ -57,21 +57,21 @@ router.patch('/match-types/:code', async (req, res) => {
     data,
   });
 
-  await writeAudit(prisma, req, 'MATCH_TYPE_UPDATED', 'MatchType', type.id, {
+  await writeAudit(prisma, req, "MATCH_TYPE_UPDATED", "MatchType", type.id, {
     code,
     ...data,
   });
 
   res.json({
     message:
-      code === 'FAIR_PAY'
+      code === "FAIR_PAY"
         ? `Fair Pay fee saved at KES ${Number(type.perPlayerFee).toFixed(2)} per player.`
         : `Loser Pay fee saved at KES ${Number(type.loserFee).toFixed(2)}.`,
     matchType: serializeMatchType(type),
   });
 });
 
-router.patch('/', async (req, res) => {
+router.patch("/", async (req, res) => {
   const data = z.record(z.string(), z.string().max(500)).parse(req.body);
   await prisma.$transaction(
     Object.entries(data).map(([key, value]) =>
@@ -82,10 +82,17 @@ router.patch('/', async (req, res) => {
       }),
     ),
   );
-  await writeAudit(prisma, req, 'SYSTEM_SETTINGS_UPDATED', 'SystemSetting', null, {
-    keys: Object.keys(data),
-  });
-  res.json({ message: 'Settings updated.' });
+  await writeAudit(
+    prisma,
+    req,
+    "SYSTEM_SETTINGS_UPDATED",
+    "SystemSetting",
+    null,
+    {
+      keys: Object.keys(data),
+    },
+  );
+  res.json({ message: "Settings updated." });
 });
 
 export default router;

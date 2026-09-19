@@ -1,4 +1,11 @@
-export async function writeAudit(db, req, action, entityType, entityId = null, metadata = null) {
+export async function writeAudit(
+  db,
+  req,
+  action,
+  entityType,
+  entityId = null,
+  metadata = null,
+) {
   return db.auditLog.create({
     data: {
       userId: req.user?.id || null,
