@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    container_name: fc27-club-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fc27_user
+      POSTGRES_PASSWORD: fc27_password
+      POSTGRES_DB: fc27_club
+    ports:
+      - "5432:5432"
+    volumes:
+      # PostgreSQL 18+ changed the official image VOLUME target from
+      # /var/lib/postgresql/data to /var/lib/postgresql.
+      - fc27_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fc27_user -d fc27_club"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  fc27_postgres_data:

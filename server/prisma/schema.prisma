@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CO_ADMIN
+  CUSTOMER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum MatchTypeCode {
+  LOSER_PAY
+  FAIR_PAY
+}
+
+enum MatchStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum MatchResult {
+  WIN
+  LOSS
+  DRAW
+}
+
+enum DrawResolution {
+  HALF_HALF
+  SUPER_LOSER
+}
+
+enum DebtStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+enum PaymentPurpose {
+  GAME_DEBT
+  PURCHASE_DEBT
+  GENERAL_CREDIT
+}
+
+enum PaymentStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum InvoiceItemCategory {
+  GAME_DEBT
+  PURCHASE_DEBT
+}
+
+enum TicketType {
+  COMPLAINT
+  SUGGESTION
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id                String          @id @default(cuid())
+  username          String          @unique
+  passwordHash      String
+  role              Role
+  status            UserStatus      @default(ACTIVE)
+  customerProfile   CustomerProfile?
+  createdMatches    Match[]         @relation("MatchCreatedBy")
+  receivedPayments  Payment[]       @relation("PaymentReceivedBy")
+  createdDebts      PurchaseDebt[]  @relation("DebtCreatedBy")
+  generatedInvoices Invoice[]       @relation("InvoiceGeneratedBy")
+  sentTicketMessages TicketMessage[] @relation("TicketMessageSender")
+  auditLogs         AuditLog[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([role, status])
+}
+
+model CustomerProfile {
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  user               User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  customerCode       String              @unique
+  displayName        String
+  email              String?             @unique
+  phone              String?
+  favoriteTeam       String?
+  avatarUrl          String?
+  active             Boolean             @default(true)
+  matchParticipants  MatchParticipant[]
+  gameCharges        GameCharge[]
+  purchaseDebts      PurchaseDebt[]
+  payments           Payment[]
+  invoices           Invoice[]
+  tickets            Ticket[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([displayName])
+}
+
+model MatchType {
+  id            String        @id @default(cuid())
+  code          MatchTypeCode @unique
+  name          String
+  loserFee      Decimal       @default(0) @db.Decimal(12, 2)
+  perPlayerFee  Decimal       @default(0) @db.Decimal(12, 2)
+  active        Boolean       @default(true)
+  matches       Match[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Match {
+  id           String             @id @default(cuid())
+  matchCode    String             @unique
+  matchTypeId  String
+  matchType    MatchType          @relation(fields: [matchTypeId], references: [id])
+  participants MatchParticipant[]
+  charges      GameCharge[]
+  status       MatchStatus        @default(ACTIVE)
+  playedAt     DateTime           @default(now())
+  createdById  String
+  createdBy    User               @relation("MatchCreatedBy", fields: [createdById], references: [id])
+  notes                    String?
+  drawResolution           DrawResolution?
+  superLoserPlayerOneScore Int?
+  superLoserPlayerTwoScore Int?
+  createdAt                DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([playedAt])
+  @@index([status])
+}
+
+model MatchParticipant {
+  id          String          @id @default(cuid())
+  matchId     String
+  match       Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  team        String?
+  score       Int
+  result      MatchResult
+
+  @@unique([matchId, customerId])
+  @@index([customerId, result])
+}
+
+model GameCharge {
+  id          String          @id @default(cuid())
+  customerId  String
+  customer    CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  matchId     String
+  match       Match           @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  amount      Decimal         @db.Decimal(12, 2)
+  allocations PaymentAllocation[]
+  voidedAt    DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@unique([customerId, matchId])
+  @@index([customerId, voidedAt])
+}
+
+model PurchaseDebt {
+  id          String          @id @default(cuid())
+  debtCode    String          @unique
+  customerId  String
+  customer    CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  description String
+  amount      Decimal         @db.Decimal(12, 2)
+  status      DebtStatus      @default(UNPAID)
+  createdById String
+  createdBy   User            @relation("DebtCreatedBy", fields: [createdById], references: [id])
+  allocations PaymentAllocation[]
+  paidAt      DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([customerId, status])
+}
+
+model Payment {
+  id              String          @id @default(cuid())
+  paymentNumber   String          @unique
+  customerId      String
+  customer        CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  amount          Decimal         @db.Decimal(12, 2)
+  unappliedAmount Decimal         @default(0) @db.Decimal(12, 2)
+  purpose         PaymentPurpose
+  method          String
+  reference       String?
+  notes           String?
+  status          PaymentStatus   @default(ACTIVE)
+  receivedById    String
+  receivedBy      User            @relation("PaymentReceivedBy", fields: [receivedById], references: [id])
+  allocations     PaymentAllocation[]
+  reversedAt      DateTime?
+  createdAt       DateTime        @default(now())
+
+  @@index([customerId, createdAt])
+}
+
+model PaymentAllocation {
+  id             String        @id @default(cuid())
+  paymentId      String
+  payment        Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  gameChargeId   String?
+  gameCharge     GameCharge?   @relation(fields: [gameChargeId], references: [id], onDelete: Restrict)
+  purchaseDebtId String?
+  purchaseDebt   PurchaseDebt? @relation(fields: [purchaseDebtId], references: [id], onDelete: Restrict)
+  amount         Decimal       @db.Decimal(12, 2)
+  createdAt      DateTime      @default(now())
+
+  @@index([gameChargeId])
+  @@index([purchaseDebtId])
+}
+
+model Invoice {
+  id                String          @id @default(cuid())
+  invoiceNumber     String          @unique
+  customerId        String
+  customer          CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  gameDebtTotal     Decimal         @db.Decimal(12, 2)
+  purchaseDebtTotal Decimal         @db.Decimal(12, 2)
+  grandTotal        Decimal         @db.Decimal(12, 2)
+  generatedById     String
+  generatedBy       User            @relation("InvoiceGeneratedBy", fields: [generatedById], references: [id])
+  items             InvoiceItem[]
+  createdAt         DateTime        @default(now())
+
+  @@index([customerId, createdAt])
+}
+
+model InvoiceItem {
+  id          String              @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  category    InvoiceItemCategory
+  referenceId String?
+  description String
+  amount      Decimal             @db.Decimal(12, 2)
+}
+
+model Ticket {
+  id         String          @id @default(cuid())
+  customerId String
+  customer   CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  type       TicketType
+  subject    String
+  status     TicketStatus    @default(OPEN)
+  messages   TicketMessage[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("TicketMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+
+model FootballTeam {
+  id        Int      @id @default(autoincrement())
+  name      String
+  country   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, country])
+  @@index([name])
+  @@index([country, active])
+  @@map("football_teams")
+}
