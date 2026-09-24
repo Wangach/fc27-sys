@@ -1,10 +1,13 @@
 import { Router } from "express";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import PDFDocument from "pdfkit";
 import { prisma } from "../utils/prisma.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { getCustomerAccount } from "../services/accountService.js";
 import { makeCode } from "../utils/codes.js";
 import { writeAudit } from "../utils/audit.js";
+
 
 const router = Router();
 router.use(authenticate);
@@ -151,13 +154,23 @@ router.get("/:id/pdf", async (req, res) => {
     `inline; filename="${invoice.invoiceNumber}.pdf"`,
   );
   doc.pipe(res);
-
-  doc.fontSize(24).text("FC ARENA", { align: "center" });
+  //start of inv
+ const imagePath = join(process.cwd(), 'src/img', 'bs-logo.jpg');
+  
+  // Option 1 – simplest (recommended)
+  const imageBuffer = await readFile(imagePath);
+  doc.image(imageBuffer, 430, 15, {
+    fit: [100, 100],
+    align: 'center',
+    valign: 'center'
+  });
+  doc.fontSize(24).text("Broad Horizons Ent.", { align: "center" });
   doc.moveDown(0.2).fontSize(13).text("ACCOUNT INVOICE", { align: "center" });
   doc.moveDown();
   doc.fontSize(10).text(`Invoice: ${invoice.invoiceNumber}`);
   doc.text(
     `Customer: ${invoice.customer.displayName} (${invoice.customer.customerCode})`,
+    {fill: true, fillColor: "#2765F5"}
   );
   doc.text(`Date: ${invoice.createdAt.toISOString().slice(0, 10)}`);
   doc.moveDown();
@@ -167,7 +180,7 @@ router.get("/:id/pdf", async (req, res) => {
     (x) => x.category === "PURCHASE_DEBT",
   );
   const section = (title, items, total) => {
-    doc.fontSize(13).text(title).moveDown(0.3);
+    doc.fontSize(13).text(title, {underline: true}).moveDown(0.3);
     if (!items.length) doc.fontSize(10).text("No outstanding items.");
     for (const item of items)
       doc
@@ -185,7 +198,7 @@ router.get("/:id/pdf", async (req, res) => {
   section("GAME DEBT", gameItems, invoice.gameDebtTotal);
   section("PURCHASE DEBT", purchaseItems, invoice.purchaseDebtTotal);
 
-  doc.fontSize(13).text("RECENT TRANSACTIONS").moveDown(0.3);
+  doc.fontSize(13).text("RECENT TRANSACTIONS", {underline: true}).moveDown(0.3);
   if (!invoice.recentTransactions.length) {
     doc
       .fontSize(10)
@@ -222,6 +235,28 @@ router.get("/:id/pdf", async (req, res) => {
       "This invoice is a snapshot of the outstanding account balance and recent transaction history at the time it was generated.",
       { align: "center" },
     );
+  doc
+  .fillColor('green')
+  .moveDown(10)
+  .fontSize(15)
+  .text(
+    "Thank You For Being A Broad Horizons Ent Customer. You Are Valued!",
+    {align: "center"},
+  );
+  const footerPath = join(process.cwd(), 'src/img', 'bs-logo-2.jpeg');
+  const imageSize = 300;
+  const bottomMargin = 30; 
+
+  const x = (doc.page.width - imageSize) / 2;   
+  const y = doc.page.height - imageSize - bottomMargin;  
+  
+  // Option 1 – simplest (recommended)
+  const footerBuffer = await readFile(footerPath);
+  doc.image(footerBuffer, x, y, {
+    fit: [imageSize, imageSize],
+    align: 'center',
+    valign: 'center'
+  });
   doc.end();
 });
 
