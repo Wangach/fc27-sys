@@ -223,12 +223,14 @@ router.get("/:id/pdf", async (req, res) => {
   }
 
   doc
+    .fillColor('#D41C1C')
     .moveDown()
     .fontSize(16)
     .text(`TOTAL AMOUNT DUE: KES ${Number(invoice.grandTotal).toFixed(2)}`, {
-      align: "right",
+      align: "right"
     });
   doc
+    .fillColor('#09101C')
     .moveDown(2)
     .fontSize(9)
     .text(
@@ -236,7 +238,7 @@ router.get("/:id/pdf", async (req, res) => {
       { align: "center" },
     );
   doc
-  .fillColor('green')
+  .fillColor('#1C5FD4')
   .moveDown(10)
   .fontSize(15)
   .text(
