@@ -245,20 +245,20 @@ router.get("/:id/pdf", async (req, res) => {
     "Thank You For Being A Broad Horizons Ent Customer. You Are Valued!",
     {align: "center"},
   );
-  const footerPath = join(process.cwd(), 'src/img', 'bs-logo-2.jpeg');
-  const imageSize = 300;
-  const bottomMargin = 30; 
+  // const footerPath = join(process.cwd(), 'src/img', 'bs-logo-2.jpeg');
+  // const imageSize = 300;
+  // const bottomMargin = 30; 
 
-  const x = (doc.page.width - imageSize) / 2;   
-  const y = doc.page.height - imageSize - bottomMargin;  
+  // const x = (doc.page.width - imageSize) / 2;   
+  // const y = doc.page.height - imageSize - bottomMargin;  
   
-  // Option 1 – simplest (recommended)
-  const footerBuffer = await readFile(footerPath);
-  doc.image(footerBuffer, x, y, {
-    fit: [imageSize, imageSize],
-    align: 'center',
-    valign: 'center'
-  });
+  // // Option 1 – simplest (recommended)
+  // const footerBuffer = await readFile(footerPath);
+  // doc.image(footerBuffer, x, y, {
+  //   fit: [imageSize, imageSize],
+  //   align: 'center',
+  //   valign: 'center'
+  // });
   doc.end();
 });
 
